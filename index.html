@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fleur Cafe & Eatery</title>
+    <!-- นำเข้าฟอนต์ Prompt จาก Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- นำเข้า FontAwesome สำหรับไอคอน Social Media -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #d4c0ab; /* สีครีมเข้ม */
+            --primary-hover: #bda996;
+            --text-main: #4a4541; /* สีเทาอมน้ำตาลให้อ่านง่าย */
+            --bg-light: #ffffff; /* สีขาว */
+            --bg-offwhite: #f9f8f5; /* สีขาวเข้ม */
+            --bg-cream: #f2efe9; /* สีครีม */
+            --accent-green: #8b8174; /* ปรับเป็นสีเอิร์ธโทนครีมๆ */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Prompt', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            line-height: 1.6;
+            scroll-behavior: smooth;
+        }
+
+        /* ----- ส่วนหัว (Hero Section) ----- */
+        header {
+            /* ระบบจะดึงรูปภาพจาก JavaScript ด้านล่างมาใส่แบบสุ่มอัตโนมัติ */
+            background-color: #333; /* สีพื้นหลังสำรองระหว่างโหลดรูป */
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: #fff;
+            padding: 20px;
+        }
+
+        header h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p.subtitle {
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            margin-bottom: 40px;
+            font-weight: 300;
+            max-width: 600px;
+        }
+
+        /* ปุ่มกด */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 35px;
+            background-color: var(--primary-color);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(196, 164, 132, 0.4);
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(196, 164, 132, 0.6);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid #fff;
+            margin-top: 15px;
+            box-shadow: none;
+        }
+
+        .btn-outline:hover {
+            background-color: #fff;
+            color: var(--text-main);
+        }
+
+        /* ----- ส่วนเนื้อหาทั่วไป ----- */
+        section {
+            padding: 80px 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h2.section-title {
+            font-size: 2.2rem;
+            color: var(--accent-green);
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .section-desc {
+            color: #666;
+            max-width: 700px;
+            margin: 0 auto 50px auto;
+            font-size: 1.1rem;
+        }
+
+        /* ----- เพิ่ม Layout สำหรับส่วนแนะนำร้าน (About) ----- */
+        .about-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+            text-align: left;
+        }
+        
+        .about-img img {
+            width: 100%;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            object-fit: cover;
+        }
+
+        @media (max-width: 768px) {
+            .about-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+        }
+
+        /* ----- ส่วนเมนูแนะนำ (Signature Menu) ----- */
+        .menu-wrapper {
+            background-color: var(--bg-offwhite);
+            border-radius: 20px;
+            padding: 60px 20px;
+            margin: 40px auto;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            max-width: 1000px;
+            margin: 0 auto 40px auto;
+        }
+
+        .menu-item {
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-10px);
+        }
+
+        .menu-item img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .menu-item h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .menu-item p {
+            font-size: 0.95rem;
+            color: #777;
+            margin-bottom: 15px;
+        }
+
+        /* ----- ส่วนความตั้งใจ (Philosophy) ----- */
+        .philosophy-section {
+            background-color: var(--bg-cream);
+            padding: 80px 20px;
+            margin-top: 40px;
+        }
+        
+        .philosophy-card {
+            background: #fff;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+            text-align: center;
+        }
+
+        .philosophy-card i {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        /* ----- ส่วน IG Wall ----- */
+        .ig-wall {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .ig-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .ig-grid img {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 10px;
+            transition: transform 0.3s ease, filter 0.3s;
+        }
+
+        .ig-grid img:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+
+        /* ----- ส่วนเสียงตอบรับ (Reviews) ----- */
+        .reviews-section {
+            background-color: var(--bg-offwhite);
+            padding: 80px 20px;
+        }
+
+        .review-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .review-card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.04);
+            text-align: left;
+            position: relative;
+        }
+
+        .review-stars {
+            color: #FFD700;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .review-text {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.8;
+        }
+
+        .review-author {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .review-author i {
+            color: #4285F4; /* Google Blue */
+            font-size: 1.2rem;
+        }
+
+        /* ----- ส่วนช่องทางการติดต่อ (Social Media) ----- */
+        .social-section {
+            padding: 60px 20px;
+            background-color: #fff;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .social-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 2rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .social-btn span {
+            font-size: 0.75rem;
+            margin-top: 5px;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* สีตอน Hover ของแต่ละแพลตฟอร์ม */
+        .social-btn.fb:hover { background-color: #1877F2; color: #fff; }
+        .social-btn.ig:hover { background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%); color: #fff; }
+        .social-btn.tt:hover { background-color: #000; color: #fff; }
+
+        .social-btn:hover span {
+            opacity: 1;
+        }
+
+        /* ----- ส่วนท้าย (Footer) ----- */
+        footer {
+            background-color: #2c3e50;
+            color: #eee;
+            text-align: center;
+            padding: 50px 20px 20px;
+        }
+
+        footer h3 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .contact-info p {
+            margin: 10px 0;
+            font-weight: 300;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .contact-info a {
+            color: #fff;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .contact-info a:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+
+        .copyright {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- หน้าแรกต้อนรับ -->
+    <header id="hero-header">
+        <h1>Fleur Cafe & Eatery</h1>
+        <p class="subtitle">เชิญสัมผัสบรรยากาศที่รายล้อมด้วยธรรมชาติ พร้อมเสิร์ฟกาแฟหอมกรุ่นและอาหารมื้อพิเศษ</p>
+        
+        <!-- ลิงก์ไปยัง E-Menu ของร้าน -->
+        <a href="https://online.fliphtml5.com/qcdwl/njzj/#p=1" target="_blank" rel="noopener noreferrer" class="btn">
+            <i class="fa-solid fa-book-open"></i> ดูเมนูฉบับเต็ม
+        </a>
+        <a href="#about" class="btn btn-outline">รู้จักเราเพิ่มเติม</a>
+    </header>
+
+    <!-- ส่วนแนะนำร้าน -->
+    <section id="about">
+        <h2 class="section-title">เกี่ยวกับเรา</h2>
+        <div class="about-content">
+            <div class="about-text">
+                <p class="section-desc" style="margin-bottom: 15px;">
+                    Fleur Cafe & Eatery เกิดจากความหลงใหลในศิลปะแห่งการชงกาแฟและการทำอาหาร 
+                    เราคัดสรรวัตถุดิบคุณภาพดีและสดใหม่ทุกวัน เพื่อเสิร์ฟความสุขในทุกๆ จาน 
+                </p>
+                <p class="section-desc">
+                    ท่ามกลางบรรยากาศสวนดอกไม้ที่ตกแต่งอย่างพิถีพิถัน สไตล์คลาสสิก 
+                    ไม่ว่าจะเป็นโซนสวนกุหลาบกลางแจ้ง หรือในมุมพักผ่อนที่อบอุ่นเป็นกันเอง 
+                    ก็เหมาะสำหรับการหลีกหนีความวุ่นวายในทุกๆ วันของคุณ
+                </p>
+            </div>
+            <div class="about-img">
+                <!-- ดึงรูปมุมสวยๆ ของร้านมาใช้ประกอบ -->
+                <img src="photo/IMG_4993.jpg" alt="บรรยากาศภายในร้าน Fleur Cafe">
+            </div>
+        </div>
+    </section>
+
+    <!-- ส่วนความตั้งใจของเรา (Philosophy & Quality) -->
+    <section class="philosophy-section" id="philosophy">
+        <div class="philosophy-card">
+            <i class="fa-solid fa-heart"></i>
+            <h2 class="section-title">ความใส่ใจในทุกรายละเอียด</h2>
+            <p class="section-desc" style="max-width: 800px; margin-bottom: 0;">
+                ความตั้งใจสูงสุดของเราคือการส่งมอบ <strong>"สิ่งที่ดีที่สุด"</strong> ให้กับลูกค้าทุกท่าน 
+                เราจึงพิถีพิถันตั้งแต่การคัดเลือกเมล็ดกาแฟสายพันธุ์ดี วัตถุดิบสดใหม่ 
+                ไปจนถึงดอกไม้ที่ปลูกด้วยความใส่ใจ ปราศจากสารเคมี 
+                เพื่อรังสรรค์ให้ทุกเมนูไม่เพียงแต่สวยงาม แต่ยังปลอดภัยและเต็มเปี่ยมไปด้วยรสชาติความสุข
+            </p>
+        </div>
+    </section>
+
+    <!-- ส่วนเมนูตัวอย่าง -->
+    <div class="menu-wrapper">
+        <section id="menu" style="padding: 0;">
+            <h2 class="section-title">เมนูแนะนำ</h2>
+            <p class="section-desc">สัมผัสรสชาติซิกเนเจอร์ที่ใครมาก็ต้องสั่ง</p>
+            
+            <div class="menu-grid">
+                <!-- แก้ไขรูปอาหารและชื่อเมนูให้ตรงกับรูปถ่ายจริง -->
+                <div class="menu-item">
+                    <img src="photo/DSC09137.jpg" alt="Signature Floral Drinks">
+                    <h3>Signature Floral Drinks</h3>
+                    <p>เครื่องดื่มซิกเนเจอร์แสนสดชื่น ตกแต่งด้วยดอกกุหลาบออร์แกนิกสุดพรีเมียม</p>
+                </div>
+                <div class="menu-item">
+                    <img src="photo/DSC09104.jpg" alt="Avocado Salmon Toast">
+                    <h3>Avocado Salmon Toast & Salad</h3>
+                    <p>โทสต์แซลมอนอโวคาโด พร้อมสลัดผักสดโรยชีสแผ่นและดอกไม้ทานได้</p>
+                </div>
+                <div class="menu-item">
+                    <img src="photo/IMG_5087.jpg" alt="Rose Red Velvet Cake">
+                    <h3>Rose Red Velvet Cake</h3>
+                    <p>เค้กเรดเวลเวทเนื้อนุ่มสลับชั้นครีมชีส ท็อปด้วยกุหลาบสุดโรแมนติก</p>
+                </div>
+            </div>
+
+            <!-- ปุ่มเปิด E-Menu อีกครั้งด้านล่างเมนูแนะนำ -->
+            <a href="https://online.fliphtml5.com/qcdwl/njzj/#p=1" target="_blank" rel="noopener noreferrer" class="btn">
+                <i class="fa-solid fa-utensils"></i> ดูเมนูอาหารและเครื่องดื่มทั้งหมด
+            </a>
+        </section>
+    </div>
+
+    <!-- ส่วนเสียงตอบรับจากลูกค้า (Google Reviews) -->
+    <section class="reviews-section" id="reviews">
+        <h2 class="section-title">ความประทับใจจากลูกค้า</h2>
+        <p class="section-desc">เสียงตอบรับบางส่วนจากลูกค้าที่น่ารักของเราบน Google Maps</p>
+        
+        <div class="review-grid">
+            <div class="review-card">
+                <div class="review-stars">
+                    <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                </div>
+                <p class="review-text">"บรรยากาศร้านสวยงามมาก เหมาะกับการมาพักผ่อน เค้กเรดเวลเวทอร่อยและตกแต่งด้วยดอกไม้จริง พิถีพิถันมากค่ะ ประทับใจมาก"</p>
+                <div class="review-author">
+                    <i class="fa-brands fa-google"></i>
+                    <span>คุณ K. Wanida</span>
+                </div>
+            </div>
+            
+            <div class="review-card">
+                <div class="review-stars">
+                    <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                </div>
+                <p class="review-text">"พาสต้าทรัฟเฟิลหอมมาก กาแฟรสชาติดี พนักงานบริการดีและใส่ใจทุกรายละเอียด สัมผัสได้ถึงความตั้งใจของร้าน แนะนำเลยครับ"</p>
+                <div class="review-author">
+                    <i class="fa-brands fa-google"></i>
+                    <span>คุณ T. Nattapong</span>
+                </div>
+            </div>
+            
+            <div class="review-card">
+                <div class="review-stars">
+                    <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                </div>
+                <p class="review-text">"ประทับใจตั้งแต่ก้าวแรกที่เข้าร้าน สวนดอกไม้ร่มรื่น สัมผัสได้ถึงความใส่ใจในการเลือกวัตถุดิบและตกแต่งจาน จะกลับมาอีกแน่นอน"</p>
+                <div class="review-author">
+                    <i class="fa-brands fa-google"></i>
+                    <span>คุณ P. Siriporn</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ส่วน Instagram Wall -->
+    <section class="ig-wall" id="ig-gallery">
+        <h2 class="section-title">@fleur.cafe.eatery</h2>
+        <p class="section-desc">แชร์ช่วงเวลาดีๆ และบรรยากาศสุดประทับใจได้ทาง Instagram</p>
+        <div class="ig-grid">
+            <!-- ดึงรูปจากโฟลเดอร์ photo เพื่อทำเป็นกริดจำลอง IG -->
+            <img src="photo/DSC09115.jpg" alt="บรรยากาศร้าน Fleur Cafe 1">
+            <img src="photo/DSC09164.jpg" alt="บรรยากาศร้าน Fleur Cafe 2">
+            <img src="photo/IMG_5063.jpg" alt="บรรยากาศร้าน Fleur Cafe 3">
+            <img src="photo/DSC09117.jpg" alt="บรรยากาศร้าน Fleur Cafe 4">
+            <img src="photo/DSC09121.jpg" alt="บรรยากาศร้าน Fleur Cafe 5">
+            <img src="photo/DSC09126.jpg" alt="บรรยากาศร้าน Fleur Cafe 6">
+        </div>
+    </section>
+
+    <!-- ส่วนช่องทางการติดตาม Social Media -->
+    <section class="social-section" id="social">
+        <h2 class="section-title">ติดตามเรา</h2>
+        <p class="section-desc">อัปเดตเมนูใหม่ โปรโมชั่น และบรรยากาศร้านได้ที่นี่</p>
+        
+        <div class="social-links">
+            <!-- ลิงก์ไป Facebook -->
+            <a href="https://www.facebook.com/FleurCafeEatery" target="_blank" rel="noopener noreferrer" class="social-btn fb">
+                <i class="fa-brands fa-facebook-f"></i>
+                <span>Facebook</span>
+            </a>
+            
+            <!-- ลิงก์ไป Instagram -->
+            <a href="https://www.instagram.com/fleur.cafe.eatery/" target="_blank" rel="noopener noreferrer" class="social-btn ig">
+                <i class="fa-brands fa-instagram"></i>
+                <span>Instagram</span>
+            </a>
+            
+            <!-- ลิงก์ไป TikTok -->
+            <a href="https://www.tiktok.com/@fleurcafeandeatery" target="_blank" rel="noopener noreferrer" class="social-btn tt">
+                <i class="fa-brands fa-tiktok"></i>
+                <span>TikTok</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- ส่วนท้ายสุด (Footer) -->
+    <footer>
+        <h3>Fleur Cafe & Eatery</h3>
+        <div class="contact-info">
+            <p>
+                <i class="fa-solid fa-location-dot"></i> 
+                <!-- ใส่ลิงก์ Google Maps -->
+                <a href="https://maps.app.goo.gl/zqRR1ZHomwSszjcf9" target="_blank" rel="noopener noreferrer">
+                    คลิกเพื่อดูแผนที่การเดินทาง (Google Maps)
+                </a>
+            </p>
+            <p><i class="fa-solid fa-clock"></i> เปิดบริการทุกวัน: 09:00 - 18:00 น.</p>
+        </div>
+        <p class="copyright">&copy; 2026 Fleur Cafe & Eatery. All rights reserved.</p>
+    </footer>
+
+    <!-- Script สำหรับสุ่มรูปภาพพื้นหลังตอนโหลดหน้าเว็บ -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // รายชื่อไฟล์ภาพบรรยากาศร้านที่คุณอัปโหลดมา
+            const bgImages = [
+                'photo/DSC09121.jpg',
+                'photo/DSC09126.jpg',
+                'photo/DSC09117.jpg'
+            ];
+            
+            // สุ่มตัวเลข Index จากอาร์เรย์
+            const randomIndex = Math.floor(Math.random() * bgImages.length);
+            const selectedImage = bgImages[randomIndex];
+            
+            // ตั้งค่าพื้นหลังให้กับ Header
+            const header = document.getElementById('hero-header');
+            header.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.5)), url('${selectedImage}')`;
+        });
+    </script>
+
+</body>
+</html>
