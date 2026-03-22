@@ -1,0 +1,495 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Users, Clock, CalendarDays, AlertCircle, Search, 
+  Timer, UserX, X, ArrowRight, Award, Download, RotateCcw
+} from 'lucide-react';
+
+// กำหนดเงื่อนไขกะงาน (Shift Configuration)
+const SHIFT_CONFIG = {
+  'กะA': { start: '08:30', end: '18:00', otStart: '18:30', breakHours: 1 },
+  'กะB': { start: '07:30', end: '17:00', otStart: '17:30', breakHours: 1 },
+  'ครึ่งวันเช้า': { start: '08:30', end: '13:00', otStart: '13:30', breakHours: 0 },
+  'ครึ่งวันบ่าย': { start: '13:30', end: '18:00', otStart: '18:30', breakHours: 0 }
+};
+
+const App = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // States สำหรับการกรองข้อมูล
+  const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+
+  const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTLT3TdKncR1Bg-DcaWKhB7DBETcZTlbhm_K8MSu4uYgXTfIN_FyRqJMu8IVItXvsbbS6BbQ6CLsW1f/pub?gid=1944724424&single=true&output=csv";
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(SHEET_URL);
+      const csvText = await response.text();
+      
+      const rows = csvText.split('\n').map(row => {
+        const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+        return matches ? matches.map(m => m.replace(/"/g, '').trim()) : row.split(',').map(c => c.trim());
+      });
+      
+      const validRows = rows.slice(1).filter(row => row[2] && row[0]);
+      setData(validRows);
+      setLoading(false);
+    } catch (err) {
+      setError("Unable to fetch data. Please check your connection.");
+      setLoading(false);
+    }
+  };
+
+  // --- Utility Functions ---
+  const timeToMins = (timeStr) => {
+    if (!timeStr || !timeStr.includes(':')) return null;
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const minsToStr = (mins) => {
+    if (mins === null || mins === undefined) return '-';
+    const h = Math.floor(mins / 60);
+    const m = Math.floor(mins % 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  };
+
+  const formatOT = (totalMins) => {
+    if (!totalMins || totalMins <= 0) return '-';
+    const h = Math.floor(totalMins / 60);
+    const m = Math.floor(totalMins % 60);
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
+  };
+
+  const parseDateDDMMYYYY = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      return new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+    return null;
+  };
+
+  const exportToCSV = () => {
+    if (!filteredData || filteredData.length === 0) return;
+    
+    const headers = ['Employee Name', 'Work Days', 'Total Hours', 'OT Minutes', 'Late Count'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredData.map(p => `"${p.name}",${p.days},${p.totalHours.toFixed(2)},${p.otTotalMins},${p.lateCount}`)
+    ].join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Attendance_Report_${startDate || 'All'}_to_${endDate || 'All'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // --- Data Processing ---
+  const processedData = useMemo(() => {
+    const dailyGroups = {}; 
+    const filterStart = startDate ? new Date(startDate) : null;
+    const filterEnd = endDate ? new Date(endDate) : null;
+
+    if (filterStart) filterStart.setHours(0,0,0,0);
+    if (filterEnd) filterEnd.setHours(23,59,59,999);
+
+    data.forEach(row => {
+      const dateRaw = row[0];   
+      const timeStr = row[1];   
+      const name = row[2];      
+      const status = row[3];    
+      const shift = row[4] || 'กะA';     
+
+      const rowDate = parseDateDDMMYYYY(dateRaw);
+      
+      // กรองตามช่วงเวลา (Date Range Filter)
+      if (filterStart && rowDate && rowDate < filterStart) return;
+      if (filterEnd && rowDate && rowDate > filterEnd) return;
+
+      const key = `${name}|${dateRaw}`;
+      if (!dailyGroups[key]) {
+        dailyGroups[key] = { name, dateRaw, checkIn: null, checkOut: null, shift };
+      }
+
+      const mins = timeToMins(timeStr);
+      if (status === 'เข้างาน') {
+        if (dailyGroups[key].checkIn === null || mins < dailyGroups[key].checkIn) {
+          dailyGroups[key].checkIn = mins;
+        }
+      } else if (status === 'ออกงาน') {
+        if (dailyGroups[key].checkOut === null || mins > dailyGroups[key].checkOut) {
+          dailyGroups[key].checkOut = mins;
+        }
+      }
+    });
+
+    const stats = { individual: {}, global: { late: 0, otMins: 0, workHrs: 0, totalDays: 0 } };
+    const leaderboards = { earliestIn: {}, latestOut: {} };
+
+    Object.values(dailyGroups).forEach(group => {
+      const config = SHIFT_CONFIG[group.shift] || SHIFT_CONFIG['กะA'];
+      let workH = 0;
+      let otMins = 0; 
+      let isLate = false;
+      const isPresent = group.checkIn !== null;
+
+      if (group.checkIn !== null && group.checkOut !== null) {
+        const shiftStart = timeToMins(config.start);
+        const shiftOTStart = timeToMins(config.otStart);
+
+        let diff = (group.checkOut - group.checkIn) / 60;
+        if (diff < 0) diff += 24; 
+        workH = Math.max(0, diff - config.breakHours);
+
+        // อนุโลมให้ 5 นาที
+        if (group.checkIn > shiftStart + 5) isLate = true;
+
+        // เริ่มนับ OT เมื่อเวลาออกงานเกินเวลาเริ่มนับ OT (otStart)
+        if (group.checkOut > shiftOTStart) {
+          otMins = group.checkOut - shiftOTStart;
+        }
+
+        stats.global.workHrs += workH;
+        stats.global.otMins += otMins;
+        if (isLate) stats.global.late += 1;
+      }
+
+      if (!stats.individual[group.name]) {
+        stats.individual[group.name] = { 
+          name: group.name, totalHours: 0, days: 0, lateCount: 0, otTotalMins: 0, records: [] 
+        };
+      }
+
+      if (isPresent) stats.individual[group.name].days += 1;
+      stats.individual[group.name].totalHours += workH;
+      stats.individual[group.name].otTotalMins += otMins;
+      if (isLate) stats.individual[group.name].lateCount += 1;
+
+      stats.individual[group.name].records.push({
+        date: group.dateRaw,
+        shift: group.shift,
+        checkIn: group.checkIn,
+        checkOut: group.checkOut,
+        workH,
+        otMins,
+        isLate
+      });
+
+      if (group.checkIn !== null) {
+        if (!leaderboards.earliestIn[group.name] || group.checkIn < leaderboards.earliestIn[group.name].time) {
+          leaderboards.earliestIn[group.name] = { name: group.name, time: group.checkIn, date: group.dateRaw };
+        }
+      }
+      if (group.checkOut !== null) {
+        if (!leaderboards.latestOut[group.name] || group.checkOut > leaderboards.latestOut[group.name].time) {
+          leaderboards.latestOut[group.name] = { name: group.name, time: group.checkOut, date: group.dateRaw };
+        }
+      }
+    });
+
+    const sortedEarliest = Object.values(leaderboards.earliestIn).sort((a, b) => a.time - b.time).slice(0, 3);
+    const sortedLatest = Object.values(leaderboards.latestOut).sort((a, b) => b.time - a.time).slice(0, 3);
+
+    return {
+      individual: Object.values(stats.individual).sort((a, b) => b.totalHours - a.totalHours),
+      global: stats.global,
+      earliestIn: sortedEarliest,
+      latestOut: sortedLatest
+    };
+  }, [data, startDate, endDate]);
+
+  const filteredData = processedData.individual.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+      <div className="w-6 h-6 border-[1.5px] border-gray-200 border-t-black rounded-full animate-spin mb-4"></div>
+      <p className="text-[10px] font-medium text-gray-400 uppercase tracking-[0.2em]">Synchronizing</p>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-white text-gray-900 font-sans pb-20">
+      {/* HEADER: Minimalist Design */}
+      <header className="border-b border-gray-100 px-8 py-5 sticky top-0 z-40 bg-white/90 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+          
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-black text-white flex items-center justify-center rounded">
+              <Users size={16} strokeWidth={1.5} />
+            </div>
+            <div>
+              <h1 className="text-base font-medium tracking-tight leading-tight">Workforce</h1>
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest">Attendance System</p>
+            </div>
+          </div>
+          
+          <div className="flex flex-col md:flex-row items-center gap-3 w-full lg:w-auto">
+            {/* Date Range Picker */}
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-1 w-full md:w-auto">
+              <div className="flex items-center pl-2">
+                <CalendarDays size={14} className="text-gray-400" strokeWidth={1.5} />
+              </div>
+              <input 
+                type="date" 
+                className="bg-transparent text-xs text-gray-700 focus:outline-none p-1.5 cursor-pointer"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+              <span className="text-gray-300 text-xs">-</span>
+              <input 
+                type="date" 
+                className="bg-transparent text-xs text-gray-700 focus:outline-none p-1.5 cursor-pointer"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+              {(startDate || endDate) && (
+                <button 
+                  onClick={() => { setStartDate(''); setEndDate(''); }}
+                  className="p-1.5 text-gray-400 hover:text-black transition-colors"
+                  title="Reset Dates"
+                >
+                  <RotateCcw size={12} strokeWidth={2} />
+                </button>
+              )}
+            </div>
+
+            {/* Search Input */}
+            <div className="relative w-full md:w-56">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} strokeWidth={1.5} />
+              <input 
+                type="text"
+                placeholder="Search employee..."
+                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-gray-300 transition-colors"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Export CSV Button */}
+            <button 
+              onClick={exportToCSV}
+              className="w-full md:w-auto flex items-center justify-center gap-2 bg-black text-white px-4 py-2 rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors"
+            >
+              <Download size={14} strokeWidth={1.5} />
+              <span>Export</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 pt-10 space-y-10">
+        
+        {/* KPI STATS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="border border-gray-100 p-6 rounded-xl flex items-center justify-between bg-white hover:border-gray-200 transition-colors">
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2">Total Late Incidents</p>
+              <div className="text-3xl font-light text-black">{processedData.global.late}</div>
+            </div>
+            <UserX className="text-gray-200" size={36} strokeWidth={1} />
+          </div>
+          <div className="border border-gray-100 p-6 rounded-xl flex items-center justify-between bg-white hover:border-gray-200 transition-colors">
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2">Total Overtime</p>
+              <div className="text-3xl font-light text-black">{formatOT(processedData.global.otMins)}</div>
+            </div>
+            <Timer className="text-gray-200" size={36} strokeWidth={1} />
+          </div>
+          <div className="border border-gray-100 p-6 rounded-xl flex items-center justify-between bg-white hover:border-gray-200 transition-colors">
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-2">Net Work Hours</p>
+              <div className="text-3xl font-light text-black">{Math.round(processedData.global.workHrs)}</div>
+            </div>
+            <Clock className="text-gray-200" size={36} strokeWidth={1} />
+          </div>
+        </div>
+
+        {/* LEADERBOARDS (Minimal) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="border border-gray-100 rounded-xl p-6 bg-gray-50/50">
+            <h3 className="text-[10px] font-medium mb-4 flex items-center gap-2 uppercase tracking-widest text-gray-500">
+              <Award size={12} strokeWidth={1.5} /> Earliest Check-in
+            </h3>
+            <div className="space-y-1">
+              {processedData.earliestIn.length === 0 && <p className="text-xs text-gray-400">No data available.</p>}
+              {processedData.earliestIn.map((p, i) => (
+                <div key={i} className="flex justify-between items-center py-2 border-b border-gray-100/50 last:border-0">
+                  <div className="flex items-center gap-4">
+                    <span className="text-[10px] text-gray-300 w-2">{i+1}</span>
+                    <span className="text-sm text-gray-800">{p.name}</span>
+                  </div>
+                  <span className="text-xs font-mono text-gray-600">{minsToStr(p.time)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border border-gray-100 rounded-xl p-6 bg-gray-50/50">
+            <h3 className="text-[10px] font-medium mb-4 flex items-center gap-2 uppercase tracking-widest text-gray-500">
+              <Clock size={12} strokeWidth={1.5} /> Latest Check-out
+            </h3>
+            <div className="space-y-1">
+              {processedData.latestOut.length === 0 && <p className="text-xs text-gray-400">No data available.</p>}
+              {processedData.latestOut.map((p, i) => (
+                <div key={i} className="flex justify-between items-center py-2 border-b border-gray-100/50 last:border-0">
+                  <div className="flex items-center gap-4">
+                    <span className="text-[10px] text-gray-300 w-2">{i+1}</span>
+                    <span className="text-sm text-gray-800">{p.name}</span>
+                  </div>
+                  <span className="text-xs font-mono text-gray-600">{minsToStr(p.time)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* DATA TABLE */}
+        <div className="border border-gray-100 rounded-xl overflow-hidden bg-white">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-gray-50/50 text-[10px] text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                  <th className="px-8 py-4 font-medium">Employee Name</th>
+                  <th className="px-6 py-4 font-medium text-center">Work Days</th>
+                  <th className="px-6 py-4 font-medium text-center">Net Hours</th>
+                  <th className="px-6 py-4 font-medium text-center">Total OT</th>
+                  <th className="px-6 py-4 font-medium text-center">Late Count</th>
+                  <th className="px-8 py-4 font-medium text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredData.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-sm text-gray-400">No records found for the selected period.</td>
+                  </tr>
+                )}
+                {filteredData.map((p, idx) => (
+                  <tr 
+                    key={idx} 
+                    className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                    onClick={() => setSelectedEmployee(p)}
+                  >
+                    <td className="px-8 py-4">
+                      <p className="text-sm text-gray-900">{p.name}</p>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-sm text-gray-500">{p.days}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="text-sm font-mono text-gray-700">{p.totalHours.toFixed(1)}</div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`text-sm font-mono ${p.otTotalMins > 0 ? 'text-black font-medium' : 'text-gray-300'}`}>
+                        {formatOT(p.otTotalMins)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`text-sm ${p.lateCount > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
+                        {p.lateCount > 0 ? p.lateCount : '-'}
+                      </span>
+                    </td>
+                    <td className="px-8 py-4 text-right">
+                      <ArrowRight size={14} strokeWidth={1.5} className="text-gray-300 group-hover:text-black transition-colors ml-auto" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      {/* MODAL: PERSONAL DETAILS (Minimalist) */}
+      {selectedEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/10 backdrop-blur-sm transition-opacity">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-100">
+            <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">{selectedEmployee.name}</h2>
+                <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">Personal Attendance History</p>
+              </div>
+              <button 
+                onClick={() => setSelectedEmployee(null)}
+                className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                <X size={18} strokeWidth={1.5} />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto p-8 flex-1 bg-gray-50/30">
+              <div className="grid grid-cols-4 gap-4 mb-8">
+                <div className="bg-white p-4 rounded-lg border border-gray-100">
+                  <p className="text-[10px] uppercase text-gray-400 tracking-widest mb-1">Days</p>
+                  <p className="text-xl font-light">{selectedEmployee.days}</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-gray-100">
+                  <p className="text-[10px] uppercase text-gray-400 tracking-widest mb-1">Hours</p>
+                  <p className="text-xl font-light">{selectedEmployee.totalHours.toFixed(1)}</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-gray-100">
+                  <p className="text-[10px] uppercase text-gray-400 tracking-widest mb-1">Total OT</p>
+                  <p className="text-xl font-light text-black">{formatOT(selectedEmployee.otTotalMins)}</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg border border-gray-100">
+                  <p className="text-[10px] uppercase text-gray-400 tracking-widest mb-1">Late</p>
+                  <p className="text-xl font-light">{selectedEmployee.lateCount}</p>
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-100 rounded-lg overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-[10px] text-gray-400 uppercase tracking-widest bg-gray-50/50">
+                      <th className="px-6 py-3 font-medium">Date</th>
+                      <th className="px-6 py-3 font-medium">Shift</th>
+                      <th className="px-6 py-3 font-medium">In</th>
+                      <th className="px-6 py-3 font-medium">Out</th>
+                      <th className="px-6 py-3 font-medium text-right">Hrs</th>
+                      <th className="px-6 py-3 font-medium text-right">OT</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {selectedEmployee.records.map((rec, i) => (
+                      <tr key={i} className="text-xs hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-3 text-gray-800">{rec.date}</td>
+                        <td className="px-6 py-3 text-gray-500">{rec.shift}</td>
+                        <td className={`px-6 py-3 font-mono ${rec.isLate ? 'text-red-500 font-medium' : 'text-gray-600'}`}>
+                          {minsToStr(rec.checkIn)}
+                        </td>
+                        <td className="px-6 py-3 font-mono text-gray-600">{minsToStr(rec.checkOut)}</td>
+                        <td className="px-6 py-3 font-mono text-right text-gray-600">{rec.workH.toFixed(1)}</td>
+                        <td className="px-6 py-3 font-mono text-right text-gray-800">{formatOT(rec.otMins)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+export default App;
