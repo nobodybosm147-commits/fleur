@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, Clock, CalendarDays, AlertCircle, Search, 
-  Timer, UserX, X, ArrowRight, Award, Download, RotateCcw
+  Timer, UserX, X, ArrowRight, Award, Download, RotateCcw, RefreshCcw
 } from 'lucide-react';
 
 // กำหนดเงื่อนไขกะงาน (Shift Configuration)
@@ -33,8 +33,19 @@ const App = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await fetch(SHEET_URL);
+      
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      
       const csvText = await response.text();
+      
+      // กรณี Google Sheets ถูกจำกัดสิทธิ์ หรือส่งค่ากลับมาเป็น HTML แทน CSV
+      if (csvText.includes('<html') || csvText.includes('<body')) {
+        throw new Error("ไม่สามารถอ่านข้อมูลได้ โปรดตรวจสอบว่าลิงก์ Google Sheets ถูกตั้งค่าเป็น 'สาธารณะ' (Public) แล้วหรือไม่");
+      }
       
       const rows = csvText.split('\n').map(row => {
         const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
@@ -42,10 +53,16 @@ const App = () => {
       });
       
       const validRows = rows.slice(1).filter(row => row[2] && row[0]);
+      
+      if (validRows.length === 0) {
+         throw new Error("ไม่พบข้อมูลพนักงานในตาราง กรุณาตรวจสอบรูปแบบข้อมูลใน Google Sheets");
+      }
+
       setData(validRows);
       setLoading(false);
     } catch (err) {
-      setError("Unable to fetch data. Please check your connection.");
+      console.error(err);
+      setError(err.message || "ไม่สามารถดึงข้อมูลได้ โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
       setLoading(false);
     }
   };
@@ -219,26 +236,54 @@ const App = () => {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // --- UI Renders ---
+
+  // หน้าจอตอนกำลังโหลด
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white">
       <div className="w-6 h-6 border-[1.5px] border-gray-200 border-t-black rounded-full animate-spin mb-4"></div>
-      <p className="text-[10px] font-medium text-gray-400 uppercase tracking-[0.2em]">Synchronizing</p>
+      <p className="text-[10px] font-medium text-gray-400 uppercase tracking-[0.2em]">Synchronizing Data</p>
     </div>
   );
 
+  // หน้าจอแสดงข้อผิดพลาด (สำคัญมาก ช่วยให้รู้ว่าทำไมไม่โหลด)
+  if (error) return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-md w-full text-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" strokeWidth={1.5} />
+        <h2 className="text-lg font-medium text-gray-900 mb-2">เกิดข้อผิดพลาดในการโหลดข้อมูล</h2>
+        <p className="text-sm text-gray-500 mb-6">{error}</p>
+        <button 
+          onClick={fetchData}
+          className="flex items-center justify-center gap-2 w-full bg-black text-white px-4 py-3 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+        >
+          <RefreshCcw size={16} />
+          ลองโหลดใหม่อีกครั้ง
+        </button>
+      </div>
+    </div>
+  );
+
+  // หน้าจอหลัก
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans pb-20">
       {/* HEADER: Minimalist Design */}
       <header className="border-b border-gray-100 px-8 py-5 sticky top-0 z-40 bg-white/90 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-black text-white flex items-center justify-center rounded">
-              <Users size={16} strokeWidth={1.5} />
-            </div>
-            <div>
-              <h1 className="text-base font-medium tracking-tight leading-tight">Workforce</h1>
-              <p className="text-[10px] text-gray-400 uppercase tracking-widest">Attendance System</p>
+          <div className="flex items-center gap-4">
+            <img 
+              src="/logo.JPG" 
+              alt="FLEUR Cafe & Eatery" 
+              className="h-10 md:h-12 w-auto object-contain mix-blend-multiply"
+              onError={(e) => {
+                e.target.onerror = null; 
+                e.target.src = "https://placehold.co/120x40/1e3932/white?text=FLEUR";
+              }}
+            />
+            <div className="hidden sm:block border-l border-gray-200 pl-4 py-1">
+              <h1 className="text-base font-bold tracking-tight leading-tight text-[#1e3932]">FLEUR</h1>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest font-medium">HR Management</p>
             </div>
           </div>
           
